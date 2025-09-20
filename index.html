@@ -14,55 +14,64 @@
       -webkit-font-smoothing:antialiased
     }
 
+    /* Grid: header / middle / bottom */
     .app{
       min-height:100%;
-      display:grid; grid-template-rows:auto 1fr auto; gap:16px; box-sizing:border-box;
       padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+      display:grid; grid-template-rows:auto 1fr auto; gap:16px; box-sizing:border-box;
     }
 
     header{ display:flex;justify-content:space-between;align-items:center;padding:4px 2px }
     header h1{ margin:0;font-size:18px;font-weight:600 }
 
+    /* Center both values as one block */
     .count{
       height:100%;
       display:flex; align-items:center; justify-content:center;
-      text-align:center; margin:0; position:relative;
+      text-align:center; margin:0;
+    }
+    .wrap{
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:8px;       /* distance between big-row and main value */
     }
 
-    .big-value{
-      position:absolute;
-      top:8%;
-      left:12%;
-      font-size:clamp(24px,5vw,36px);
-      font-weight:500;
-      opacity:.7;
+    /* Big row: BIG + (= total) inline */
+    .big-row{
+      display:flex; align-items:baseline; gap:10px;
+      font-weight:600; opacity:.85;
+      font-size:clamp(18px,3.8vw,30px);
     }
+    .big-label{ font-weight:400; opacity:.7; margin-right:6px }
+    .big-num{ font-variant-numeric: tabular-nums; }
+    .big-total{ opacity:.75; font-weight:500 }
 
+    /* Main small value */
     .value{
       font-size:clamp(96px,18vw,160px);
-      font-weight:800;
-      line-height:1;
-      margin:0;
+      font-weight:800; line-height:1; margin:0;
+      font-variant-numeric: tabular-nums;
     }
 
+    /* Controls cluster */
     .controls{
       display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center;
       padding:0 4px 8px;justify-items:center
     }
-
     .btn{
       width:var(--base);height:var(--base);
       background:#111;border-radius:20px;
       color:#fff;border:2px solid #333;
       display:grid;place-items:center;
       font-weight:900;user-select:none;touch-action:manipulation;
-      transition:transform .06s ease,opacity .2s ease;
+      transition:transform .06s ease,opacity .2s ease, border-color .2s ease, background .2s ease;
     }
+    .btn:hover{ border-color:#fff; background:rgba(255,255,255,.06) }
     .btn:active{ transform:scale(.96) }
     .btn span{ line-height:1 }
     .btn-minus span{ font-size:calc(var(--base)*.42) }
-    .btn-plus span{ font-size:calc(var(--base)*.50) }
+    .btn-plus  span{ font-size:calc(var(--base)*.50) }
 
+    /* RESET above +/- */
     #reset{
       border:none;background:transparent;display:block;cursor:pointer;
       font-size:17px;letter-spacing:.22em;color:#fff;opacity:.9;
@@ -80,67 +89,105 @@
     <header><h1>Counter by StarShots ID</h1></header>
 
     <main class="count">
-      <div class="big-value" id="big">0</div>
-      <div class="value" id="value">0</div>
+      <div class="wrap">
+        <div class="big-row">
+          <span class="big-label">Group</span>
+          <span class="big-num" id="big">0</span>
+          <span class="big-total" id="total">= 0</span>
+        </div>
+        <div class="value" id="value">0</div>
+      </div>
     </main>
 
     <section>
-      <button id="reset">RESET</button>
+      <button id="reset" aria-label="Reset">RESET</button>
       <div class="controls">
-        <button class="btn btn-minus" id="dec"><span>−</span></button>
-        <button class="btn btn-plus"  id="inc"><span>+</span></button>
+        <button class="btn btn-minus" id="dec" aria-label="Decrease"><span>−</span></button>
+        <button class="btn btn-plus"  id="inc" aria-label="Increase"><span>+</span></button>
       </div>
       <div class="note">hold for faster value</div>
     </section>
   </div>
 
 <script>
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("sw.js").catch(()=>{});
-}
-
-(function(){
-  const bigEl = document.getElementById('big');
-  const smallEl = document.getElementById('value');
-  const incBtn = document.getElementById('inc');
-  const decBtn = document.getElementById('dec');
-  const resetBtn = document.getElementById('reset');
-
-  const LIMIT = 7;
-  let big = Number(localStorage.getItem('counter:big')||0);
-  let small = Number(localStorage.getItem('counter:small')||0);
-
-  function render(){
-    bigEl.textContent = big;
-    smallEl.textContent = small;
-  }
-  function save(){
-    localStorage.setItem('counter:big',big);
-    localStorage.setItem('counter:small',small);
+  // Optional: keep PWA registration if sw.js exists
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
   }
 
-  function step(delta){
-    small += delta;
-    if (small >= LIMIT){
-      big++;
-      small = 0;
-    } else if (small < 0 && big > 0){
-      big--;
-      small = LIMIT-1;
-    } else if (small < 0){
-      small = 0;
+  (function(){
+    const LIMIT = 7; // small 0..6; on 7 -> +1 big, small -> 0
+
+    const bigEl   = document.getElementById('big');
+    const smallEl = document.getElementById('value');
+    const totalEl = document.getElementById('total');
+    const incBtn  = document.getElementById('inc');
+    const decBtn  = document.getElementById('dec');
+    const resetBtn= document.getElementById('reset');
+
+    let big   = Number(localStorage.getItem('counter:big')   || 0);
+    let small = Number(localStorage.getItem('counter:small') || 0);
+
+    function total(){ return big * LIMIT + small; }
+
+    function render(){
+      bigEl.textContent = big;
+      smallEl.textContent = small;
+      totalEl.textContent = '= ' + total();
     }
-    render(); save();
-  }
 
-  incBtn.addEventListener('click',()=>step(1));
-  decBtn.addEventListener('click',()=>step(-1));
-  resetBtn.addEventListener('click',()=>{
-    big=0; small=0; render(); save();
-  });
+    function save(){
+      localStorage.setItem('counter:big', big);
+      localStorage.setItem('counter:small', small);
+    }
 
-  render();
-})();
+    function step(delta){
+      small += delta;
+
+      if (small >= LIMIT){
+        // overflow small -> increment big, reset small to 0
+        big += Math.floor(small / LIMIT);
+        small = small % LIMIT;
+      } else if (small < 0){
+        // borrow from big if possible
+        if (big > 0){
+          big -= 1;
+          small = LIMIT - 1; // wrap to 6
+        } else {
+          small = 0; // clamp at zero if both are zero
+        }
+      }
+
+      render(); save();
+    }
+
+    // Basic tap
+    incBtn.addEventListener('click',()=>step(1));
+    decBtn.addEventListener('click',()=>step(-1));
+    resetBtn.addEventListener('click',()=>{ big=0; small=0; render(); save(); });
+
+    // (Optional) simple long-press accelerator
+    function attachPress(btn, delta){
+      let t=null, r=null, long=false;
+      const start = (e)=>{
+        e.preventDefault?.();
+        long=false;
+        clearTimeout(t); clearInterval(r);
+        t=setTimeout(()=>{ long=true; r=setInterval(()=>step(delta),120); }, 600);
+      };
+      const end = ()=>{
+        clearTimeout(t); clearInterval(r);
+        if(!long) step(delta);
+      };
+      btn.addEventListener('touchstart', start, {passive:false});
+      btn.addEventListener('mousedown', start);
+      ['touchend','touchcancel','mouseup','mouseleave','blur'].forEach(ev=>btn.addEventListener(ev,end));
+    }
+    attachPress(incBtn, +1);
+    attachPress(decBtn, -1);
+
+    render();
+  })();
 </script>
 </body>
 </html>
