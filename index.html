@@ -153,47 +153,56 @@
 
     // Press handling + visual feedback class
     function attachPress(btn, delta){
-      let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
+  let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
+  let activePointerId=null;
 
-      const onDown = (e)=>{
-        e.preventDefault?.();
-        activePointerId = e.pointerId ?? null;
+  const onDown = (e)=>{
+    e.preventDefault?.();
+    activePointerId = e.pointerId ?? null;
     // 👇 capture the pointer so we keep getting events even if the cursor leaves
     if (activePointerId!=null && btn.setPointerCapture) btn.setPointerCapture(activePointerId);
-        
-        btn.classList.add('is-pressing');     // visual press state
-        long=false;
-        clearTimeout(holdTimer); clearTimeout(repeatTimer);
-        holdTimer=setTimeout(()=>{
-          long=true;
-          let delay=START_DELAY_MS;
-          const tick=()=>{
-            step(delta);
-            delay=Math.max(MIN_DELAY_MS, delay*SPEEDUP);
-            repeatTimer=setTimeout(tick, delay);
-          };
-          tick();
-        }, HOLD_START_MS);
-      };
 
-      const onUp = ()=>{
-        btn.classList.remove('is-pressing');  // remove press state
-        clearTimeout(holdTimer); clearTimeout(repeatTimer);
-        if(!long){
-          const now=Date.now();
-          if(now-lastTap>=TAP_GAP_MS){
-            step(delta);
-            lastTap=now;
-          }
-        }
-      };
+    btn.classList.add('is-pressing');
+    long=false;
+    clearTimeout(holdTimer); clearTimeout(repeatTimer);
 
-      btn.addEventListener('pointerdown', onDown);
-      btn.addEventListener('pointerup', onUp);
-      btn.addEventListener('pointercancel', onUp);
-      btn.addEventListener('pointerleave', onUp);
-      btn.addEventListener('blur', onUp);
+    holdTimer=setTimeout(()=>{
+      long=true;
+      let delay=START_DELAY_MS;
+      const tick=()=>{
+        step(delta);
+        delay = Math.max(MIN_DELAY_MS, delay * SPEEDUP);
+        repeatTimer = setTimeout(tick, delay);
+      };
+      tick();
+    }, HOLD_START_MS);
+  };
+
+  const cleanup = (e)=>{
+    btn.classList.remove('is-pressing');
+    if (activePointerId!=null && btn.hasPointerCapture?.(activePointerId)) {
+      btn.releasePointerCapture(activePointerId);
     }
+    activePointerId=null;
+    clearTimeout(holdTimer); clearTimeout(repeatTimer);
+  };
+
+  const onUp = (e)=>{
+    const wasLong = long;
+    cleanup(e);
+    if (!wasLong){
+      const now = Date.now();
+      if (now - lastTap >= TAP_GAP_MS){ step(delta); lastTap = now; }
+    }
+  };
+
+  btn.addEventListener('pointerdown', onDown);
+  btn.addEventListener('pointerup', onUp);
+  btn.addEventListener('pointercancel', cleanup);
+
+  // 👇 Optional: ignore pointerleave so moving off the button doesn't stop the hold
+  // btn.removeEventListener('pointerleave', anythingIfYouAddedIt);
+}
 
     attachPress(incBtn, +1);
     attachPress(decBtn, -1);
