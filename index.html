@@ -157,6 +157,10 @@
 
       const onDown = (e)=>{
         e.preventDefault?.();
+        activePointerId = e.pointerId ?? null;
+    // 👇 capture the pointer so we keep getting events even if the cursor leaves
+    if (activePointerId!=null && btn.setPointerCapture) btn.setPointerCapture(activePointerId);
+        
         btn.classList.add('is-pressing');     // visual press state
         long=false;
         clearTimeout(holdTimer); clearTimeout(repeatTimer);
