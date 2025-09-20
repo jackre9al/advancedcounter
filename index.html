@@ -1,193 +1,50 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>Dual Counter</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <meta name="theme-color" content="#000000">
-  <style>
-    :root{ --base:150px }
-    html,body{
-      margin:0;height:100%;background:#000;color:#fff;
-      font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Inter,Arial,sans-serif;
-      -webkit-font-smoothing:antialiased
-    }
+// --- constants ---
+const LIMIT = 7;            // small cycles 0..6
+const STEP  = 1;            // <— single taps = +1 / -1
+const HOLD_START_MS = 600;  // start acceleration after hold
+const MIN_DELAY_MS  = 50;
+const START_DELAY_MS = 400;
+const SPEEDUP = 0.85;
 
-    /* Grid: header / middle / bottom */
-    .app{
-      min-height:100%;
-      padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
-      display:grid; grid-template-rows:auto 1fr auto; gap:16px; box-sizing:border-box;
-    }
+// ... step(delta) stays the same ...
 
-    header{ display:flex;justify-content:space-between;align-items:center;padding:4px 2px }
-    header h1{ margin:0;font-size:18px;font-weight:600 }
+// --- accelerating long-press that resets on release ---
+function attachPress(btn, deltaUnit){
+  let holdTimer = null;
+  let repeatTimer = null;
+  let long = false;
 
-    /* Center both values as one block */
-    .count{
-      height:100%;
-      display:flex; align-items:center; justify-content:center;
-      text-align:center; margin:0;
-    }
-    .wrap{
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap:8px;       /* distance between big-row and main value */
-    }
+  const start = (e)=>{
+    e.preventDefault?.();
+    long = false;
+    clearTimeout(holdTimer);
+    clearTimeout(repeatTimer);
 
-    /* Big row: BIG + (= total) inline */
-    .big-row{
-      display:flex; align-items:baseline; gap:10px;
-      font-weight:600; opacity:.85;
-      font-size:clamp(18px,3.8vw,30px);
-    }
-    .big-label{ font-weight:400; opacity:.7; margin-right:6px }
-    .big-num{ font-variant-numeric: tabular-nums; }
-    .big-total{ opacity:.75; font-weight:500 }
-
-    /* Main small value */
-    .value{
-      font-size:clamp(96px,18vw,160px);
-      font-weight:800; line-height:1; margin:0;
-      font-variant-numeric: tabular-nums;
-    }
-
-    /* Controls cluster */
-    .controls{
-      display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center;
-      padding:0 4px 8px;justify-items:center
-    }
-    .btn{
-      width:var(--base);height:var(--base);
-      background:#111;border-radius:20px;
-      color:#fff;border:2px solid #333;
-      display:grid;place-items:center;
-      font-weight:900;user-select:none;touch-action:manipulation;
-      transition:transform .06s ease,opacity .2s ease, border-color .2s ease, background .2s ease;
-    }
-    .btn:hover{ border-color:#fff; background:rgba(255,255,255,.06) }
-    .btn:active{ transform:scale(.96) }
-    .btn span{ line-height:1 }
-    .btn-minus span{ font-size:calc(var(--base)*.42) }
-    .btn-plus  span{ font-size:calc(var(--base)*.50) }
-
-    /* RESET above +/- */
-    #reset{
-      border:none;background:transparent;display:block;cursor:pointer;
-      font-size:17px;letter-spacing:.22em;color:#fff;opacity:.9;
-      margin:12px auto 6px;
-    }
-    #reset:active{ opacity:1 }
-
-    .note{
-      text-align:center;color:#bbb;font-size:11px;opacity:.7;margin-top:6px;
-    }
-  </style>
-</head>
-<body>
-  <div class="app" id="app">
-    <header><h1>Counter by StarShots ID</h1></header>
-
-    <main class="count">
-      <div class="wrap">
-        <div class="big-row">
-          <span class="big-label">Group</span>
-          <span class="big-num" id="big">0</span>
-          <span class="big-total" id="total">= 0</span>
-        </div>
-        <div class="value" id="value">0</div>
-      </div>
-    </main>
-
-    <section>
-      <button id="reset" aria-label="Reset">RESET</button>
-      <div class="controls">
-        <button class="btn btn-minus" id="dec" aria-label="Decrease"><span>−</span></button>
-        <button class="btn btn-plus"  id="inc" aria-label="Increase"><span>+</span></button>
-      </div>
-      <div class="note">hold for faster value</div>
-    </section>
-  </div>
-
-<script>
-  // Optional: keep PWA registration if sw.js exists
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').catch(()=>{});
-  }
-
-  (function(){
-    const LIMIT = 7; // small 0..6; on 7 -> +1 big, small -> 0
-
-    const bigEl   = document.getElementById('big');
-    const smallEl = document.getElementById('value');
-    const totalEl = document.getElementById('total');
-    const incBtn  = document.getElementById('inc');
-    const decBtn  = document.getElementById('dec');
-    const resetBtn= document.getElementById('reset');
-
-    let big   = Number(localStorage.getItem('counter:big')   || 0);
-    let small = Number(localStorage.getItem('counter:small') || 0);
-
-    function total(){ return big * LIMIT + small; }
-
-    function render(){
-      bigEl.textContent = big;
-      smallEl.textContent = small;
-      totalEl.textContent = '= ' + total();
-    }
-
-    function save(){
-      localStorage.setItem('counter:big', big);
-      localStorage.setItem('counter:small', small);
-    }
-
-    function step(delta){
-      small += delta;
-
-      if (small >= LIMIT){
-        // overflow small -> increment big, reset small to 0
-        big += Math.floor(small / LIMIT);
-        small = small % LIMIT;
-      } else if (small < 0){
-        // borrow from big if possible
-        if (big > 0){
-          big -= 1;
-          small = LIMIT - 1; // wrap to 6
-        } else {
-          small = 0; // clamp at zero if both are zero
-        }
-      }
-
-      render(); save();
-    }
-
-    // Basic tap
-    incBtn.addEventListener('click',()=>step(1));
-    decBtn.addEventListener('click',()=>step(-1));
-    resetBtn.addEventListener('click',()=>{ big=0; small=0; render(); save(); });
-
-    // (Optional) simple long-press accelerator
-    function attachPress(btn, delta){
-      let t=null, r=null, long=false;
-      const start = (e)=>{
-        e.preventDefault?.();
-        long=false;
-        clearTimeout(t); clearInterval(r);
-        t=setTimeout(()=>{ long=true; r=setInterval(()=>step(delta),120); }, 600);
+    holdTimer = setTimeout(()=>{
+      long = true;
+      let delay = START_DELAY_MS;
+      const tick = ()=>{
+        step(deltaUnit);                  // still +1 per tick
+        delay = Math.max(MIN_DELAY_MS, delay * SPEEDUP);
+        repeatTimer = setTimeout(tick, delay);
       };
-      const end = ()=>{
-        clearTimeout(t); clearInterval(r);
-        if(!long) step(delta);
-      };
-      btn.addEventListener('touchstart', start, {passive:false});
-      btn.addEventListener('mousedown', start);
-      ['touchend','touchcancel','mouseup','mouseleave','blur'].forEach(ev=>btn.addEventListener(ev,end));
-    }
-    attachPress(incBtn, +1);
-    attachPress(decBtn, -1);
+      tick();
+    }, HOLD_START_MS);
+  };
 
-    render();
-  })();
-</script>
-</body>
-</html>
+  const end = ()=>{
+    clearTimeout(holdTimer);
+    clearTimeout(repeatTimer);
+    if (!long) step(deltaUnit);           // quick tap = +1 or -1
+  };
+
+  btn.addEventListener('touchstart', start, {passive:false});
+  btn.addEventListener('mousedown', start);
+  ['touchend','touchcancel','mouseup','mouseleave','blur'].forEach(ev =>
+    btn.addEventListener(ev, end)
+  );
+}
+
+// --- bindings ---
+attachPress(document.getElementById('inc'), +STEP);
+attachPress(document.getElementById('dec'), -STEP);
