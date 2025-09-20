@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Dual Counter</title>
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#000000">
   <style>
     :root{ --base:150px }
@@ -28,16 +28,9 @@
       display:flex; align-items:center; justify-content:center;
       text-align:center;
     }
-    .wrap{
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap:8px;
-    }
+    .wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
 
-    .big-row{
-      display:flex; align-items:baseline; gap:10px;
-      font-weight:600; opacity:.9;
-      font-size:clamp(18px,3.8vw,30px);
-    }
+    .big-row{ display:flex; align-items:baseline; gap:10px; font-weight:600; opacity:.9; font-size:clamp(18px,3.8vw,30px); }
     .big-num{ font-variant-numeric: tabular-nums; }
     .big-total{ opacity:.75; font-weight:500 }
 
@@ -72,11 +65,127 @@
     }
     #reset:active{ opacity:1 }
 
-    .note{
-      text-align:center;color:#bbb;font-size:11px;opacity:.7;margin-top:6px;
-    }
+    .note{ text-align:center;color:#bbb;font-size:11px;opacity:.7;margin-top:6px; }
   </style>
 </head>
 <body>
   <div class="app" id="app">
-    <header><h1>Counter by StarShots ID</h1></hea
+    <header><h1>Counter by StarShots ID</h1></header>
+
+    <main class="count">
+      <div class="wrap">
+        <div class="big-row">
+          <span class="big-num" id="big">0</span>
+          <span class="big-total" id="total">= 0</span>
+        </div>
+        <div class="value" id="value">0</div>
+      </div>
+    </main>
+
+    <section>
+      <button id="reset" aria-label="Reset">RESET</button>
+      <div class="controls">
+        <button class="btn btn-minus" id="dec" aria-label="Decrease"><span>−</span></button>
+        <button class="btn btn-plus"  id="inc" aria-label="Increase"><span>+</span></button>
+      </div>
+      <div class="note">hold for faster value</div>
+    </section>
+  </div>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').then(reg => {
+      let refreshing=false;
+      navigator.serviceWorker.addEventListener('controllerchange',()=>{
+        if(refreshing) return; refreshing=true; location.reload();
+      });
+    }).catch(()=>{});
+  }
+
+  (function(){
+    const LIMIT = 7;
+    const TAP_GAP_MS = 300;
+    const HOLD_START_MS = 600;
+    const START_DELAY_MS = 400;
+    const MIN_DELAY_MS = 50;
+    const SPEEDUP = 0.85;
+
+    const bigEl   = document.getElementById('big');
+    const smallEl = document.getElementById('value');
+    const totalEl = document.getElementById('total');
+    const incBtn  = document.getElementById('inc');
+    const decBtn  = document.getElementById('dec');
+    const resetBtn= document.getElementById('reset');
+
+    let total = Number(localStorage.getItem('counter:total') || 0);
+
+    function save(){ localStorage.setItem('counter:total', total); }
+
+    function mapTotalToDisplay(t){
+      if (t <= 0) return { big:0, small:0 };
+      const q = Math.floor(t / LIMIT);
+      const r = t % LIMIT;
+      if (r === 0){
+        return { big: Math.max(0, q-1), small: 7 };
+      }
+      return { big: q, small: r };
+    }
+
+    function render(){
+      const { big, small } = mapTotalToDisplay(total);
+      bigEl.textContent = big;
+      smallEl.textContent = small;
+      totalEl.textContent = '= ' + total;
+    }
+
+    function step(delta){
+      total = Math.max(0, total + delta);
+      render(); save();
+    }
+
+    function attachPress(btn, delta){
+      let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
+
+      const onDown = (e)=>{
+        e.preventDefault?.();
+        long=false;
+        clearTimeout(holdTimer); clearTimeout(repeatTimer);
+        holdTimer=setTimeout(()=>{
+          long=true;
+          let delay=START_DELAY_MS;
+          const tick=()=>{
+            step(delta);
+            delay=Math.max(MIN_DELAY_MS, delay*SPEEDUP);
+            repeatTimer=setTimeout(tick, delay);
+          };
+          tick();
+        }, HOLD_START_MS);
+      };
+
+      const onUp = ()=>{
+        clearTimeout(holdTimer); clearTimeout(repeatTimer);
+        if(!long){
+          const now=Date.now();
+          if(now-lastTap>=TAP_GAP_MS){
+            step(delta);
+            lastTap=now;
+          }
+        }
+      };
+
+      btn.addEventListener('pointerdown', onDown);
+      btn.addEventListener('pointerup', onUp);
+      btn.addEventListener('pointercancel', onUp);
+      btn.addEventListener('pointerleave', onUp);
+      btn.addEventListener('blur', onUp);
+    }
+
+    attachPress(incBtn, +1);
+    attachPress(decBtn, -1);
+    resetBtn.addEventListener('click', ()=>{ total=0; render(); save(); });
+
+    render();
+  })();
+</script>
+</body>
+</html>
