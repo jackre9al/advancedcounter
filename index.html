@@ -1,50 +1,9 @@
-// --- constants ---
-const LIMIT = 7;            // small cycles 0..6
-const STEP  = 1;            // <— single taps = +1 / -1
-const HOLD_START_MS = 600;  // start acceleration after hold
-const MIN_DELAY_MS  = 50;
-const START_DELAY_MS = 400;
-const SPEEDUP = 0.85;
-
-// ... step(delta) stays the same ...
-
-// --- accelerating long-press that resets on release ---
-function attachPress(btn, deltaUnit){
-  let holdTimer = null;
-  let repeatTimer = null;
-  let long = false;
-
-  const start = (e)=>{
-    e.preventDefault?.();
-    long = false;
-    clearTimeout(holdTimer);
-    clearTimeout(repeatTimer);
-
-    holdTimer = setTimeout(()=>{
-      long = true;
-      let delay = START_DELAY_MS;
-      const tick = ()=>{
-        step(deltaUnit);                  // still +1 per tick
-        delay = Math.max(MIN_DELAY_MS, delay * SPEEDUP);
-        repeatTimer = setTimeout(tick, delay);
-      };
-      tick();
-    }, HOLD_START_MS);
-  };
-
-  const end = ()=>{
-    clearTimeout(holdTimer);
-    clearTimeout(repeatTimer);
-    if (!long) step(deltaUnit);           // quick tap = +1 or -1
-  };
-
-  btn.addEventListener('touchstart', start, {passive:false});
-  btn.addEventListener('mousedown', start);
-  ['touchend','touchcancel','mouseup','mouseleave','blur'].forEach(ev =>
-    btn.addEventListener(ev, end)
-  );
-}
-
-// --- bindings ---
-attachPress(document.getElementById('inc'), +STEP);
-attachPress(document.getElementById('dec'), -STEP);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Dual Counter</title>
+  <!-- keep manifest if you have it in your repo -->
+  <link rel="manifest" href="manifest.webmanifest">
+  <meta name="theme-color" content="#
