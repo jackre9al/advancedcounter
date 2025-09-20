@@ -30,9 +30,9 @@
     }
     .wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
 
-    .big-row{ display:flex; align-items:baseline; gap:10px; font-weight:600; opacity:.9; font-size:clamp(18px,3.8vw,30px); }
+    .big-row{ display:flex; align-items:baseline; gap:10px; font-weight:600; opacity:.95; font-size:clamp(18px,3.8vw,30px); }
     .big-num{ font-variant-numeric: tabular-nums; }
-    .big-total{ opacity:.75; font-weight:500 }
+    .big-total{ font-weight:700; opacity:1; } /* bold (total) */
 
     .value{
       font-size:clamp(96px,18vw,160px);
@@ -76,7 +76,7 @@
       <div class="wrap">
         <div class="big-row">
           <span class="big-num" id="big">0</span>
-          <span class="big-total" id="total">= 0</span>
+          <span class="big-total" id="total">(0)</span>
         </div>
         <div class="value" id="value">0</div>
       </div>
@@ -93,6 +93,7 @@
   </div>
 
 <script>
+  // Service worker registration (works with sw.js in same folder)
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('./sw.js').then(reg => {
       let refreshing=false;
@@ -103,6 +104,7 @@
   }
 
   (function(){
+    // ----- CONFIG -----
     const LIMIT = 7;
     const TAP_GAP_MS = 300;
     const HOLD_START_MS = 600;
@@ -110,6 +112,7 @@
     const MIN_DELAY_MS = 50;
     const SPEEDUP = 0.85;
 
+    // ----- ELEMENTS -----
     const bigEl   = document.getElementById('big');
     const smallEl = document.getElementById('value');
     const totalEl = document.getElementById('total');
@@ -117,25 +120,24 @@
     const decBtn  = document.getElementById('dec');
     const resetBtn= document.getElementById('reset');
 
+    // ----- STATE: single total -----
     let total = Number(localStorage.getItem('counter:total') || 0);
 
     function save(){ localStorage.setItem('counter:total', total); }
 
+    // NEW: big = floor(total/7); small = (total%7) except 0 -> 7 (unless total==0)
     function mapTotalToDisplay(t){
-      if (t <= 0) return { big:0, small:0 };
-      const q = Math.floor(t / LIMIT);
+      if (t === 0) return { big:0, small:0 };
+      const q = Math.floor(t / LIMIT);  // groups completed
       const r = t % LIMIT;
-      if (r === 0){
-        return { big: Math.max(0, q-1), small: 7 };
-      }
-      return { big: q, small: r };
+      return { big: q, small: r === 0 ? 7 : r };
     }
 
     function render(){
       const { big, small } = mapTotalToDisplay(total);
       bigEl.textContent = big;
       smallEl.textContent = small;
-      totalEl.textContent = '= ' + total;
+      totalEl.textContent = '(' + total + ')'; // bold via CSS
     }
 
     function step(delta){
@@ -143,6 +145,7 @@
       render(); save();
     }
 
+    // Accelerating long-press with 300ms tap gap
     function attachPress(btn, delta){
       let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
 
