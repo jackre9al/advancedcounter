@@ -2,123 +2,158 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Counter</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#000000">
   <style>
-    html, body { height: 100%; margin: 0; overflow: hidden; }
-
-    /* disable selection and copy */
-    html, body, * {
-      -webkit-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-      -webkit-touch-callout: none;
+    :root{ --base:150px }
+    html,body{
+      margin:0;height:100%;background:#000;color:#fff;
+      font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Inter,Arial,sans-serif;
+      -webkit-font-smoothing:antialiased;
+      overflow:hidden; /* no scroll */
+      -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; /* disable selection */
+      -webkit-touch-callout:none;
     }
 
-    body {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      background: #111;
-      color: #fff;
-      font-family: sans-serif;
-      height: 100vh;
+    .app{
+      min-height:100%;
+      padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
+      display:grid; grid-template-rows:auto 1fr auto; gap:16px; box-sizing:border-box;
     }
 
-    .container {
-      text-align: center;
+    header{ display:flex;justify-content:center;align-items:center;padding:4px 2px }
+    header h1{ margin:0;font-size:18px;font-weight:600 }
+
+    .count{
+      height:100%;
+      display:flex; align-items:center; justify-content:center;
+      text-align:center;
     }
 
-    #value {
-      font-size: 5rem;
-      margin-bottom: 20px;
+    .value{
+      font-size:clamp(96px,18vw,160px);
+      font-weight:800; line-height:1; margin:0;
+      font-variant-numeric: tabular-nums;
     }
 
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
+    .controls{
+      display:flex;gap:18px;align-items:center;justify-content:center;
+      padding:0 4px 8px;
     }
-
-    button {
-      font-size: 2rem;
-      padding: 20px 30px; /* taller buttons */
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      background: #333;
-      color: #fff;
-      transition: background 0.2s;
+    .btn{
+      width:var(--base);height:calc(var(--base) * 1.3); /* taller buttons */
+      background:#111;border-radius:20px;
+      color:#fff;border:2px solid #333;
+      display:grid;place-items:center;
+      user-select:none;touch-action:manipulation;
+      transition:transform .08s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
+      position:relative; overflow:hidden;
     }
+    .btn:hover{ border-color:#fff; background:rgba(255,255,255,.06) }
+    .btn.is-pressing{ transform:scale(.94); background:#141414; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), inset 0 10px 30px rgba(255,255,255,.06) }
+    .glyph{ width:46%; height:46%; display:block }
+    .btn-minus .glyph{ width:42%; height:42% }
 
-    button:active {
-      background: #555;
+    #reset{
+      border:none;background:transparent;display:block;cursor:pointer;
+      font-size:17px;letter-spacing:.22em;color:#fff;opacity:.9;
+      margin:12px auto 6px;
     }
+    #reset:active{ opacity:1 }
 
-    button.primary { background: #4f46e5; }
-    button.primary:active { background: #4338ca; }
-    button.danger { background: #ef4444; }
-    button.danger:active { background: #dc2626; }
+    .note{ text-align:center;color:#bbb;font-size:11px;opacity:.7;margin-top:6px; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div id="value">0</div>
-    <div class="controls">
-      <button id="minus">−</button>
-      <button id="reset" class="danger">Reset</button>
-      <button id="plus" class="primary">＋</button>
-    </div>
+  <div class="app" id="app">
+    <header><h1>Counter</h1></header>
+
+    <main class="count">
+      <div class="value" id="value">0</div>
+    </main>
+
+    <section>
+      <button id="reset" aria-label="Reset">RESET</button>
+      <div class="controls">
+        <button class="btn btn-minus" id="dec" aria-label="Decrease">
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+          </svg>
+        </button>
+        <button class="btn btn-plus"  id="inc" aria-label="Increase">
+          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
+          </svg>
+        </button>
+      </div>
+      <div class="note">hold for faster value</div>
+    </section>
   </div>
 
-  <script>
+<script>
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+
+  (function(){
     const valueEl = document.getElementById('value');
-    const minusBtn = document.getElementById('minus');
-    const plusBtn = document.getElementById('plus');
-    const resetBtn = document.getElementById('reset');
+    const incBtn  = document.getElementById('inc');
+    const decBtn  = document.getElementById('dec');
+    const resetBtn= document.getElementById('reset');
 
-    let count = 0;
+    let total = Number(localStorage.getItem('counter:total') || 0);
+    const save = ()=>localStorage.setItem('counter:total', total);
+    const render=()=>{ valueEl.textContent = total; };
 
-    const render = () => { valueEl.textContent = count; };
+    function step(delta){ total = Math.max(0, total + delta); render(); save(); }
 
-    function attachAutoRepeat(btn, step) {
-      let interval = null;
-      let active = false;
+    function attachPress(btn, delta){
+      let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
+      let activePointerId=null;
 
-      const start = (e) => {
-        e.preventDefault();
-        active = true;
-        count += step; render();
-        clearInterval(interval);
-        interval = setInterval(() => { count += step; render(); }, 100);
+      const onDown = (e)=>{
+        e.preventDefault?.();
+        activePointerId = e.pointerId ?? null;
+        if (activePointerId!=null && btn.setPointerCapture) btn.setPointerCapture(activePointerId);
+        btn.classList.add('is-pressing');
+        long=false;
+        clearTimeout(holdTimer); clearTimeout(repeatTimer);
+        holdTimer=setTimeout(()=>{
+          long=true;
+          let delay=400;
+          const tick=()=>{ step(delta); delay=Math.max(50, delay*0.85); repeatTimer=setTimeout(tick,delay); };
+          tick();
+        }, 600);
       };
 
-      const end = () => {
-        if (!active) return;
-        active = false;
-        clearInterval(interval);
-        interval = null;
+      const cleanup=(e)=>{
+        btn.classList.remove('is-pressing');
+        if (activePointerId!=null && btn.hasPointerCapture?.(activePointerId)) btn.releasePointerCapture(activePointerId);
+        activePointerId=null;
+        clearTimeout(holdTimer); clearTimeout(repeatTimer);
       };
 
-      btn.addEventListener('pointerdown', start);
-      window.addEventListener('pointerup', end);
-      window.addEventListener('pointercancel', end);
+      const onUp=(e)=>{ const wasLong=long; cleanup(e); if(!wasLong) step(delta); };
+
+      btn.addEventListener('pointerdown', onDown);
+      btn.addEventListener('pointerup', onUp);
+      btn.addEventListener('pointercancel', cleanup);
     }
 
-    attachAutoRepeat(minusBtn, -1);
-    attachAutoRepeat(plusBtn, 1);
-
-    resetBtn.addEventListener('click', () => { count = 0; render(); });
+    attachPress(incBtn, +1);
+    attachPress(decBtn, -1);
+    resetBtn.addEventListener('click', ()=>{ total=0; render(); save(); });
 
     render();
 
-    // extra block for copy/selection/context menu
-    const block = (e) => e.preventDefault();
+    const block=(e)=>e.preventDefault();
     document.addEventListener('copy', block);
     document.addEventListener('cut', block);
     document.addEventListener('contextmenu', block);
     document.addEventListener('selectstart', block);
-  </script>
+  })();
+</script>
 </body>
 </html>
