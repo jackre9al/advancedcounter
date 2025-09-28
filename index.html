@@ -5,196 +5,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
   <title>Counter</title>
   <style>
-    :root {
-      --bg: #0b0c10;
-      --panel: #111218;
-      --text: #e8e8e8;
-      --muted: #9aa0a6;
-      --accent: #4f46e5;
-      --accent-press: #4338ca;
-      --danger: #ef4444;
-      --radius: 18px;
-      --shadow: 0 6px 24px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.25);
-    }
+    html, body { height: 100%; margin: 0; overflow: hidden; }
 
-    /* 1) Global: no selection / no copying / no callouts */
-    html, body { height: 100%; }
+    /* disable selection and copy */
     html, body, * {
       -webkit-user-select: none;
       -moz-user-select: none;
       -ms-user-select: none;
       user-select: none;
-      -webkit-touch-callout: none; /* iOS long-press */
+      -webkit-touch-callout: none;
     }
-    /* Prevent drag ghost images */
-    img, a { -webkit-user-drag: none; user-drag: none; }
 
-    /* 2) Lock layout to a single viewport page (no scroll/bounce) */
-    html { overflow: hidden; }
     body {
-      margin: 0;
-      overflow: hidden;              /* no scroll */
-      background: var(--bg);
-      color: var(--text);
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
-      min-height: 100svh;            /* handle mobile dynamic bars */
-      height: 100svh;                /* fill viewport */
-      display: grid;
-      place-items: center;
-      touch-action: none;            /* block overscroll/bounce */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      height: 100vh;
     }
 
-    .app {
-      width: min(760px, 92vw);
-      background: var(--panel);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: clamp(16px, 3.5vw, 28px);
-      display: grid;
-      gap: clamp(14px, 2.4vw, 22px);
-    }
-
-    .display {
+    .container {
       text-align: center;
-      font-weight: 800;
-      font-variant-numeric: tabular-nums;
-      font-size: clamp(54px, 11vw, 140px);
-      line-height: 1;
-      letter-spacing: 0.02em;
-      padding: clamp(6px, 1vw, 12px) 0;
-      background: linear-gradient(180deg, #e8e8e8, #cfcfcf);
-      -webkit-background-clip: text;
-      background-clip: text;
-      color: transparent;
-      user-select: none;
+    }
+
+    #value {
+      font-size: 5rem;
+      margin-bottom: 20px;
     }
 
     .controls {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: clamp(10px, 2.2vw, 16px);
-      align-items: stretch;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
     }
 
-    .btn {
-      display: inline-grid;
-      place-items: center;
-      background: #171923;
-      color: var(--text);
-      border: 1px solid #222637;
-      border-radius: calc(var(--radius) - 6px);
-      box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 8px 16px rgba(0,0,0,.35);
-      font-size: clamp(20px, 4vw, 28px);
-      font-weight: 700;
-
-      /* 3) TALLER buttons */
-      height: clamp(68px, 15vh, 96px);
-      padding: 0 clamp(14px, 3.5vw, 22px);
-
+    button {
+      font-size: 2rem;
+      padding: 20px 30px; /* taller buttons */
+      border: none;
+      border-radius: 10px;
       cursor: pointer;
-      transition: transform .02s ease, background .12s ease, box-shadow .12s ease;
-      touch-action: manipulation; /* improves tap latency, prevents double-tap zoom */
+      background: #333;
+      color: #fff;
+      transition: background 0.2s;
     }
 
-    .btn:active { transform: translateY(1px); }
-    .btn.primary { background: var(--accent); border-color: var(--accent-press); }
-    .btn.primary:active { background: var(--accent-press); }
-    .btn.danger { background: #1b1220; border-color: #2a1930; color: #fecaca; }
-    .btn.danger:active { background: #26122b; }
-
-    .row {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      gap: clamp(10px, 2.2vw, 16px);
-      align-items: center;
+    button:active {
+      background: #555;
     }
 
-    .hint { text-align: center; color: var(--muted); font-size: clamp(12px, 2.4vw, 14px); }
+    button.primary { background: #4f46e5; }
+    button.primary:active { background: #4338ca; }
+    button.danger { background: #ef4444; }
+    button.danger:active { background: #dc2626; }
   </style>
 </head>
 <body>
-  <main class="app" role="application" aria-label="Single counter">
-    <div id="value" class="display" aria-live="polite">0</div>
-
+  <div class="container">
+    <div id="value">0</div>
     <div class="controls">
-      <button id="minus" class="btn" aria-label="Decrease">−</button>
-      <button id="reset" class="btn danger" aria-label="Reset">Reset</button>
-      <button id="plus" class="btn primary" aria-label="Increase">＋</button>
+      <button id="minus">−</button>
+      <button id="reset" class="danger">Reset</button>
+      <button id="plus" class="primary">＋</button>
     </div>
-
-    <div class="row">
-      <div class="hint">Press & hold to auto‑repeat.</div>
-      <div></div>
-      <div class="hint">Copy/select is disabled.</div>
-    </div>
-  </main>
+  </div>
 
   <script>
-    // 1) Hard‑block selection/copy/context menu globally (extra guards beyond CSS)
-    const block = (e) => e.preventDefault();
-    document.addEventListener('copy', block, { passive: false });
-    document.addEventListener('cut', block, { passive: false });
-    document.addEventListener('contextmenu', block, { passive: false });
-    document.addEventListener('selectstart', block, { passive: false });
-    document.addEventListener('dragstart', block, { passive: false });
-
-    // 2) Single counter (no artificial limits)
-    let count = 0;
     const valueEl = document.getElementById('value');
     const minusBtn = document.getElementById('minus');
     const plusBtn = document.getElementById('plus');
     const resetBtn = document.getElementById('reset');
 
+    let count = 0;
+
     const render = () => { valueEl.textContent = count; };
 
-    // Utilities for press‑and‑hold auto‑repeat (works even if pointer leaves button)
     function attachAutoRepeat(btn, step) {
       let interval = null;
       let active = false;
 
-      const start = (ev) => {
-        ev.preventDefault();
+      const start = (e) => {
+        e.preventDefault();
         active = true;
         count += step; render();
         clearInterval(interval);
-        interval = setInterval(() => { count += step; render(); }, 85);
-        // Capture pointer so leaving the button keeps repeating
-        if (btn.setPointerCapture && ev.pointerId !== undefined) {
-          try { btn.setPointerCapture(ev.pointerId); } catch {}
-        }
+        interval = setInterval(() => { count += step; render(); }, 100);
       };
 
-      const end = (ev) => {
+      const end = () => {
         if (!active) return;
         active = false;
         clearInterval(interval);
         interval = null;
-        if (btn.releasePointerCapture && ev.pointerId !== undefined) {
-          try { btn.releasePointerCapture(ev.pointerId); } catch {}
-        }
       };
 
-      btn.addEventListener('pointerdown', start, { passive: false });
-      window.addEventListener('pointerup', end, { passive: true });
-      window.addEventListener('pointercancel', end, { passive: true });
-      // Also support keyboard activation
-      btn.addEventListener('keydown', (e) => {
-        if (e.key === ' ' || e.key === 'Enter') start(e);
-      });
-      btn.addEventListener('keyup', end);
+      btn.addEventListener('pointerdown', start);
+      window.addEventListener('pointerup', end);
+      window.addEventListener('pointercancel', end);
     }
 
     attachAutoRepeat(minusBtn, -1);
-    attachAutoRepeat(plusBtn, +1);
+    attachAutoRepeat(plusBtn, 1);
 
     resetBtn.addEventListener('click', () => { count = 0; render(); });
 
-    // Prevent page scroll from any wheel/touch gestures (belt & suspenders)
-    const noScroll = (e) => e.preventDefault();
-    window.addEventListener('wheel', noScroll, { passive: false });
-    window.addEventListener('touchmove', noScroll, { passive: false });
-
     render();
+
+    // extra block for copy/selection/context menu
+    const block = (e) => e.preventDefault();
+    document.addEventListener('copy', block);
+    document.addEventListener('cut', block);
+    document.addEventListener('contextmenu', block);
+    document.addEventListener('selectstart', block);
   </script>
 </body>
 </html>
