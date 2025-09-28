@@ -2,214 +2,199 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>Dual Counter</title>
-  <link rel="manifest" href="./manifest.webmanifest">
-  <meta name="theme-color" content="#000000">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+  <title>Counter</title>
   <style>
-    :root{ --base:150px }
-    html,body{
-      margin:0;height:100%;background:#000;color:#fff;
-      font-family:"Segoe UI",-apple-system,BlinkMacSystemFont,Inter,Arial,sans-serif;
-      -webkit-font-smoothing:antialiased
+    :root {
+      --bg: #0b0c10;
+      --panel: #111218;
+      --text: #e8e8e8;
+      --muted: #9aa0a6;
+      --accent: #4f46e5;
+      --accent-press: #4338ca;
+      --danger: #ef4444;
+      --radius: 18px;
+      --shadow: 0 6px 24px rgba(0,0,0,.35), 0 2px 8px rgba(0,0,0,.25);
     }
 
-    .app{
-      min-height:100%;
-      padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
-      display:grid; grid-template-rows:auto 1fr auto; gap:16px; box-sizing:border-box;
+    /* 1) Global: no selection / no copying / no callouts */
+    html, body { height: 100%; }
+    html, body, * {
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none; /* iOS long-press */
+    }
+    /* Prevent drag ghost images */
+    img, a { -webkit-user-drag: none; user-drag: none; }
+
+    /* 2) Lock layout to a single viewport page (no scroll/bounce) */
+    html { overflow: hidden; }
+    body {
+      margin: 0;
+      overflow: hidden;              /* no scroll */
+      background: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+      min-height: 100svh;            /* handle mobile dynamic bars */
+      height: 100svh;                /* fill viewport */
+      display: grid;
+      place-items: center;
+      touch-action: none;            /* block overscroll/bounce */
     }
 
-    header{ display:flex;justify-content:space-between;align-items:center;padding:4px 2px }
-    header h1{ margin:0;font-size:18px;font-weight:600 }
-
-    .count{
-      height:100%;
-      display:flex; align-items:center; justify-content:center;
-      text-align:center;
+    .app {
+      width: min(760px, 92vw);
+      background: var(--panel);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: clamp(16px, 3.5vw, 28px);
+      display: grid;
+      gap: clamp(14px, 2.4vw, 22px);
     }
-    .wrap{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; }
 
-    .big-row{ display:flex; align-items:baseline; gap:10px; font-weight:600; opacity:.95; font-size:clamp(18px,3.8vw,30px); }
-    .big-num{ font-variant-numeric: tabular-nums; }
-    .big-total{ font-weight:700; opacity:1; }
-
-    .value{
-      font-size:clamp(96px,18vw,160px);
-      font-weight:800; line-height:1; margin:0;
+    .display {
+      text-align: center;
+      font-weight: 800;
       font-variant-numeric: tabular-nums;
+      font-size: clamp(54px, 11vw, 140px);
+      line-height: 1;
+      letter-spacing: 0.02em;
+      padding: clamp(6px, 1vw, 12px) 0;
+      background: linear-gradient(180deg, #e8e8e8, #cfcfcf);
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      user-select: none;
     }
 
-    .controls{
-      display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:center;
-      padding:0 4px 8px;justify-items:center
+    .controls {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: clamp(10px, 2.2vw, 16px);
+      align-items: stretch;
     }
-    .btn{
-      width:var(--base);height:var(--base);
-      background:#111;border-radius:20px;
-      color:#fff;border:2px solid #333;
-      display:grid;place-items:center;
-      user-select:none;touch-action:manipulation;
-      transition:transform .08s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
-      position:relative; overflow:hidden;
-    }
-    .btn:hover{ border-color:#fff; background:rgba(255,255,255,.06) }
-    .btn.is-pressing{ transform:scale(.94); background:#141414; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), inset 0 10px 30px rgba(255,255,255,.06) }
-    /* SVG glyphs are pixel-perfect centered */
-    .glyph{ width:46%; height:46%; display:block }
-    .btn-minus .glyph{ width:42%; height:42% } /* minus looks nicer a touch smaller */
 
-    #reset{
-      border:none;background:transparent;display:block;cursor:pointer;
-      font-size:17px;letter-spacing:.22em;color:#fff;opacity:.9;
-      margin:12px auto 6px;
-    }
-    #reset:active{ opacity:1 }
+    .btn {
+      display: inline-grid;
+      place-items: center;
+      background: #171923;
+      color: var(--text);
+      border: 1px solid #222637;
+      border-radius: calc(var(--radius) - 6px);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04), 0 8px 16px rgba(0,0,0,.35);
+      font-size: clamp(20px, 4vw, 28px);
+      font-weight: 700;
 
-    .note{ text-align:center;color:#bbb;font-size:11px;opacity:.7;margin-top:6px; }
+      /* 3) TALLER buttons */
+      height: clamp(68px, 15vh, 96px);
+      padding: 0 clamp(14px, 3.5vw, 22px);
+
+      cursor: pointer;
+      transition: transform .02s ease, background .12s ease, box-shadow .12s ease;
+      touch-action: manipulation; /* improves tap latency, prevents double-tap zoom */
+    }
+
+    .btn:active { transform: translateY(1px); }
+    .btn.primary { background: var(--accent); border-color: var(--accent-press); }
+    .btn.primary:active { background: var(--accent-press); }
+    .btn.danger { background: #1b1220; border-color: #2a1930; color: #fecaca; }
+    .btn.danger:active { background: #26122b; }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: clamp(10px, 2.2vw, 16px);
+      align-items: center;
+    }
+
+    .hint { text-align: center; color: var(--muted); font-size: clamp(12px, 2.4vw, 14px); }
   </style>
 </head>
 <body>
-  <div class="app" id="app">
-    <header><h1>Counter by StarShots ID</h1></header>
+  <main class="app" role="application" aria-label="Single counter">
+    <div id="value" class="display" aria-live="polite">0</div>
 
-    <main class="count">
-      <div class="wrap">
-        <div class="big-row">
-          <span class="big-num" id="big">0</span>
-          <span class="big-total" id="total">(0)</span>
-        </div>
-        <div class="value" id="value">0</div>
-      </div>
-    </main>
+    <div class="controls">
+      <button id="minus" class="btn" aria-label="Decrease">−</button>
+      <button id="reset" class="btn danger" aria-label="Reset">Reset</button>
+      <button id="plus" class="btn primary" aria-label="Increase">＋</button>
+    </div>
 
-    <section>
-      <button id="reset" aria-label="Reset">RESET</button>
-      <div class="controls">
-        <!-- SVG icons = perfectly centered -->
-        <button class="btn btn-minus" id="dec" aria-label="Decrease">
-          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
-          </svg>
-        </button>
-        <button class="btn btn-plus"  id="inc" aria-label="Increase">
-          <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="3" stroke-linecap="round" fill="none"/>
-          </svg>
-        </button>
-      </div>
-      <div class="note">hold for faster value</div>
-    </section>
-  </div>
+    <div class="row">
+      <div class="hint">Press & hold to auto‑repeat.</div>
+      <div></div>
+      <div class="hint">Copy/select is disabled.</div>
+    </div>
+  </main>
 
-<script>
-  // SW registration (unchanged)
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-      let refreshing=false;
-      navigator.serviceWorker.addEventListener('controllerchange',()=>{
-        if(refreshing) return; refreshing=true; location.reload();
-      });
-    }).catch(()=>{});
-  }
+  <script>
+    // 1) Hard‑block selection/copy/context menu globally (extra guards beyond CSS)
+    const block = (e) => e.preventDefault();
+    document.addEventListener('copy', block, { passive: false });
+    document.addEventListener('cut', block, { passive: false });
+    document.addEventListener('contextmenu', block, { passive: false });
+    document.addEventListener('selectstart', block, { passive: false });
+    document.addEventListener('dragstart', block, { passive: false });
 
-  (function(){
-    // ----- CONFIG -----
-    const LIMIT = 7;
-    const TAP_GAP_MS = 300;
-    const HOLD_START_MS = 600;
-    const START_DELAY_MS = 400;
-    const MIN_DELAY_MS = 50;
-    const SPEEDUP = 0.85;
+    // 2) Single counter (no artificial limits)
+    let count = 0;
+    const valueEl = document.getElementById('value');
+    const minusBtn = document.getElementById('minus');
+    const plusBtn = document.getElementById('plus');
+    const resetBtn = document.getElementById('reset');
 
-    // ----- DOM -----
-    const bigEl   = document.getElementById('big');
-    const smallEl = document.getElementById('value');
-    const totalEl = document.getElementById('total');
-    const incBtn  = document.getElementById('inc');
-    const decBtn  = document.getElementById('dec');
-    const resetBtn= document.getElementById('reset');
+    const render = () => { valueEl.textContent = count; };
 
-    let total = Number(localStorage.getItem('counter:total') || 0);
-    const save = ()=>localStorage.setItem('counter:total', total);
+    // Utilities for press‑and‑hold auto‑repeat (works even if pointer leaves button)
+    function attachAutoRepeat(btn, step) {
+      let interval = null;
+      let active = false;
 
-    function mapTotalToDisplay(t){
-      if (t === 0) return { big:0, small:0 };
-      const q = Math.floor(t / LIMIT);
-      const r = t % LIMIT;
-      return { big: q, small: r === 0 ? 7 : r };
-    }
-    function render(){
-      const { big, small } = mapTotalToDisplay(total);
-      bigEl.textContent = big;
-      smallEl.textContent = small;
-      totalEl.textContent = '(' + total + ')';
-    }
-
-    function step(delta){
-      total = Math.max(0, total + delta);
-      render(); save();
-    }
-
-    // Press handling + visual feedback class
-    function attachPress(btn, delta){
-  let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
-  let activePointerId=null;
-
-  const onDown = (e)=>{
-    e.preventDefault?.();
-    activePointerId = e.pointerId ?? null;
-    // 👇 capture the pointer so we keep getting events even if the cursor leaves
-    if (activePointerId!=null && btn.setPointerCapture) btn.setPointerCapture(activePointerId);
-
-    btn.classList.add('is-pressing');
-    long=false;
-    clearTimeout(holdTimer); clearTimeout(repeatTimer);
-
-    holdTimer=setTimeout(()=>{
-      long=true;
-      let delay=START_DELAY_MS;
-      const tick=()=>{
-        step(delta);
-        delay = Math.max(MIN_DELAY_MS, delay * SPEEDUP);
-        repeatTimer = setTimeout(tick, delay);
+      const start = (ev) => {
+        ev.preventDefault();
+        active = true;
+        count += step; render();
+        clearInterval(interval);
+        interval = setInterval(() => { count += step; render(); }, 85);
+        // Capture pointer so leaving the button keeps repeating
+        if (btn.setPointerCapture && ev.pointerId !== undefined) {
+          try { btn.setPointerCapture(ev.pointerId); } catch {}
+        }
       };
-      tick();
-    }, HOLD_START_MS);
-  };
 
-  const cleanup = (e)=>{
-    btn.classList.remove('is-pressing');
-    if (activePointerId!=null && btn.hasPointerCapture?.(activePointerId)) {
-      btn.releasePointerCapture(activePointerId);
+      const end = (ev) => {
+        if (!active) return;
+        active = false;
+        clearInterval(interval);
+        interval = null;
+        if (btn.releasePointerCapture && ev.pointerId !== undefined) {
+          try { btn.releasePointerCapture(ev.pointerId); } catch {}
+        }
+      };
+
+      btn.addEventListener('pointerdown', start, { passive: false });
+      window.addEventListener('pointerup', end, { passive: true });
+      window.addEventListener('pointercancel', end, { passive: true });
+      // Also support keyboard activation
+      btn.addEventListener('keydown', (e) => {
+        if (e.key === ' ' || e.key === 'Enter') start(e);
+      });
+      btn.addEventListener('keyup', end);
     }
-    activePointerId=null;
-    clearTimeout(holdTimer); clearTimeout(repeatTimer);
-  };
 
-  const onUp = (e)=>{
-    const wasLong = long;
-    cleanup(e);
-    if (!wasLong){
-      const now = Date.now();
-      if (now - lastTap >= TAP_GAP_MS){ step(delta); lastTap = now; }
-    }
-  };
+    attachAutoRepeat(minusBtn, -1);
+    attachAutoRepeat(plusBtn, +1);
 
-  btn.addEventListener('pointerdown', onDown);
-  btn.addEventListener('pointerup', onUp);
-  btn.addEventListener('pointercancel', cleanup);
+    resetBtn.addEventListener('click', () => { count = 0; render(); });
 
-  // 👇 Optional: ignore pointerleave so moving off the button doesn't stop the hold
-  // btn.removeEventListener('pointerleave', anythingIfYouAddedIt);
-}
-
-    attachPress(incBtn, +1);
-    attachPress(decBtn, -1);
-    resetBtn.addEventListener('click', ()=>{ total=0; render(); save(); });
+    // Prevent page scroll from any wheel/touch gestures (belt & suspenders)
+    const noScroll = (e) => e.preventDefault();
+    window.addEventListener('wheel', noScroll, { passive: false });
+    window.addEventListener('touchmove', noScroll, { passive: false });
 
     render();
-  })();
-</script>
+  </script>
 </body>
 </html>
