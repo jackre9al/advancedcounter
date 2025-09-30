@@ -38,7 +38,7 @@
       font-variant-numeric: tabular-nums;
     }
 
-    section{ padding-bottom:6px }
+    section{ padding-bottom:6px; display:flex; flex-direction:column; align-items:center; }
 
     .controls{
       display:flex;gap:18px;align-items:center;justify-content:center;
@@ -58,15 +58,17 @@
     .glyph{ width:46%; height:46%; display:block }
     .btn-minus .glyph{ width:42%; height:42% }
 
-    /* Reset button with minimalist frame */
+    /* Reset button aligned in center with spacing */
     #reset{
-      border:2px solid #333; background:#0d0d0d; display:inline-flex; cursor:pointer;
+      border:2px solid #333; background:#111; display:flex; cursor:pointer;
       align-items:center; justify-content:center;
       font-size:16px; letter-spacing:.22em; color:#fff; opacity:.95;
-      margin:10px auto 10px; padding:0 18px; height:56px; min-width:160px;
-      border-radius:16px; transition:border-color .15s ease, background .15s ease, opacity .15s ease;
+      margin:16px 0 24px; /* vertical spacing above and below */
+      padding:0 32px; /* balanced left/right spacing */
+      height:56px; min-width:200px;
+      border-radius:20px; transition:border-color .15s ease, background .15s ease, opacity .15s ease;
     }
-    #reset:hover{ border-color:#fff; background:#111; opacity:1 }
+    #reset:hover{ border-color:#fff; background:#141414; opacity:1 }
     #reset:active{ background:#151515 }
 
     .note{ text-align:center;color:#bbb;font-size:11px;opacity:.7;margin-top:8px; }
@@ -113,15 +115,37 @@
     const save = ()=>localStorage.setItem('counter:total', total);
     const render=()=>{ valueEl.textContent = total; };
 
-    function step(delta){ total = Math.max(0, total + delta); render(); save(); }
+    // ---- WebAudio soft 'tut' ----
+    let audioCtx=null;
+    function ensureAudio(){
+      if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
+    function playClick(kind){
+      if (!audioCtx) return;
+      const now = audioCtx.currentTime;
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = 'sine';
+      const f = kind==='inc' ? 1800 : kind==='dec' ? 1400 : 600;
+      o.frequency.setValueAtTime(f, now);
+      g.gain.setValueAtTime(0.0001, now);
+      g.gain.exponentialRampToValueAtTime(0.03, now+0.005);
+      g.gain.exponentialRampToValueAtTime(0.0001, now+0.07);
+      o.connect(g).connect(audioCtx.destination);
+      o.start(now); o.stop(now+0.08);
+    }
+
+    function step(delta, kind){ total = Math.max(0, total + delta); render(); save(); playClick(kind); }
 
     const TAP_GAP_MS = 300; // delay between single taps
 
-    function attachPress(btn, delta){
+    function attachPress(btn, delta, kind){
       let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
       let activePointerId=null;
 
       const onDown = (e)=>{
+        ensureAudio();
         e.preventDefault?.();
         activePointerId = e.pointerId ?? null;
         if (activePointerId!=null && btn.setPointerCapture) btn.setPointerCapture(activePointerId);
@@ -131,7 +155,7 @@
         holdTimer=setTimeout(()=>{
           long=true;
           let delay=400;               // initial repeat delay
-          const tick=()=>{ step(delta); delay=Math.max(50, delay*0.85); repeatTimer=setTimeout(tick,delay); };
+          const tick=()=>{ step(delta, kind); delay=Math.max(50, delay*0.85); repeatTimer=setTimeout(tick,delay); };
           tick();
         }, 600); // long-press start
       };
@@ -147,7 +171,7 @@
         const wasLong=long; cleanup(e);
         if(!wasLong){
           const now = Date.now();
-          if (now - lastTap >= TAP_GAP_MS){ step(delta); lastTap = now; }
+          if (now - lastTap >= TAP_GAP_MS){ step(delta, kind); lastTap = now; }
         }
       };
 
@@ -156,9 +180,10 @@
       btn.addEventListener('pointercancel', cleanup);
     }
 
-    attachPress(incBtn, +1);
-    attachPress(decBtn, -1);
-    resetBtn.addEventListener('click', ()=>{ total=0; render(); save(); });
+    attachPress(incBtn, +1, 'inc');
+    attachPress(decBtn, -1, 'dec');
+
+    resetBtn.addEventListener('click', ()=>{ ensureAudio(); total=0; render(); save(); playClick('reset'); });
 
     render();
 
