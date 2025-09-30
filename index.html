@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
-  <title>Counter by StarShots ID</title>
+  <title>Counter</title>
   <link rel="manifest" href="./manifest.webmanifest">
   <meta name="theme-color" content="#000000">
   <style>
@@ -20,50 +20,43 @@
     .app{
       min-height:100%;
       padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
-      display:grid; grid-template-rows:auto auto 1fr auto; gap:10px; box-sizing:border-box;
+      display:grid; grid-template-rows:auto 1fr auto; gap:0; box-sizing:border-box;
     }
 
-    header{ display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 2px 0 }
-    header h1{ margin:0;font-size:18px;font-weight:600 }
+    /* ===== Group 1: Title + mute icon ===== */
+    header{ display:flex; flex-direction:column; align-items:center; justify-content:flex-end; padding:8px 2px 0 }
+    header h1{ margin:0 0 8px 0; font-size:18px; font-weight:600 }
+    .toolbar{ display:flex; align-items:center; justify-content:center; height:28px; }
+    /* icon-only, no frame */
+    .mute-btn{ background:transparent; border:none; padding:0; margin:0; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; line-height:0; }
+    .mute-btn .icon{ width:20px; height:20px; display:block; color:#e5e5e5 }
 
-    /* Toolbar directly below the title */
-    .toolbar{ margin-top:6px; display:flex; align-items:center; justify-content:center; gap:10px }
-    .mute-btn{
-      display:inline-flex; align-items:center; justify-content:center;
-      height:34px; min-width:34px; padding:0 10px; gap:8px;
-      border:2px solid #333; background:#111; color:#fff; opacity:.95;
-      border-radius:14px; cursor:pointer; transition:border-color .15s, background .15s, opacity .15s;
-      user-select:none; touch-action:manipulation;
+    /* ===== Group 2: Counter value (center) ===== */
+    .count{ flex:1; display:flex; align-items:center; justify-content:center; text-align:center; }
+    .value{ font-size:clamp(96px,18vw,160px); font-weight:800; line-height:1; margin:0; font-variant-numeric: tabular-nums; }
+
+    /* ===== Group 3: Reset + controls ===== */
+    section{ padding:0 0 6px; display:flex; flex-direction:column; align-items:center; }
+
+    /* Reset centered, framed like buttons, with one "enter" gap before controls */
+    #reset{
+      border:2px solid #333; background:#111; display:flex; cursor:pointer;
+      align-items:center; justify-content:center;
+      font-size:16px; letter-spacing:.22em; color:#fff; opacity:.95;
+      margin:18px 0 26px; /* vertical spacing around reset */
+      padding:0 34px; /* L/R spacing */
+      height:56px; min-width:200px;
+      border-radius:20px; transition:border-color .15s ease, background .15s ease, opacity .15s ease;
     }
-    .mute-btn:hover{ border-color:#fff; background:#141414; opacity:1 }
-    .mute-btn:active{ background:#151515 }
-    .mute-btn .icon{ width:18px; height:18px; display:block }
-    .mute-btn .label{ font-size:12px; letter-spacing:.08em; opacity:.85 }
+    #reset:hover{ border-color:#fff; background:#141414; opacity:1 }
+    #reset:active{ background:#151515 }
 
-    .count{
-      height:100%;
-      display:flex; align-items:center; justify-content:center;
-      text-align:center;
-    }
-
-    .value{
-      font-size:clamp(96px,18vw,160px);
-      font-weight:800; line-height:1; margin:0;
-      font-variant-numeric: tabular-nums;
-    }
-
-    section{ padding-bottom:6px; display:flex; flex-direction:column; align-items:center; }
-
-    .controls{
-      display:flex;gap:18px;align-items:center;justify-content:center;
-      padding:0 4px 8px;
-    }
+    .controls{ display:flex; gap:18px; align-items:center; justify-content:center; padding:0 4px 8px; }
     .btn{
-      width:var(--base);height:calc(var(--base) * 1.3); /* taller buttons only */
-      background:#111;border-radius:20px;
-      color:#fff;border:2px solid #333;
-      display:grid;place-items:center;
-      user-select:none;touch-action:manipulation;
+      width:calc(var(--base) * 1.2); /* wider a bit */
+      height:calc(var(--base) * 1.3); /* same tall height as before */
+      background:#111; border-radius:20px; color:#fff; border:2px solid #333;
+      display:grid; place-items:center; user-select:none; touch-action:manipulation;
       transition:transform .08s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease;
       position:relative; overflow:hidden;
     }
@@ -71,19 +64,6 @@
     .btn.is-pressing{ transform:scale(.94); background:#141414; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), inset 0 10px 30px rgba(255,255,255,.06) }
     .glyph{ width:46%; height:46%; display:block }
     .btn-minus .glyph{ width:42%; height:42% }
-
-    /* Reset button aligned in center with spacing */
-    #reset{
-      border:2px solid #333; background:#111; display:flex; cursor:pointer;
-      align-items:center; justify-content:center;
-      font-size:16px; letter-spacing:.22em; color:#fff; opacity:.95;
-      margin:18px 0 26px; /* vertical spacing above and below */
-      padding:0 34px; /* more left/right spacing */
-      height:56px; min-width:200px;
-      border-radius:20px; transition:border-color .15s ease, background .15s ease, opacity .15s ease;
-    }
-    #reset:hover{ border-color:#fff; background:#141414; opacity:1 }
-    #reset:active{ background:#151515 }
 
     .note{ text-align:center;color:#bbb;font-size:11px;opacity:.7;margin-top:8px; }
   </style>
@@ -93,7 +73,7 @@
     <header>
       <h1>Counter</h1>
       <div class="toolbar">
-        <button id="muteBtn" class="mute-btn" aria-pressed="false" aria-label="Disable sound">
+        <button id="muteBtn" class="mute-btn" aria-pressed="false" aria-label="Toggle sound">
           <!-- default: sound on (bell) -->
           <svg class="icon" id="iconBell" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 3a5 5 0 0 1 5 5v2.3c0 .8.3 1.6.8 2.2l1 1.2c.7.8.1 2-1 2H6.2c-1.1 0-1.7-1.2-1-2l1-1.2c.5-.6.8-1.4.8-2.2V8a5 5 0 0 1 5-5Z" fill="currentColor"/>
@@ -105,7 +85,6 @@
             <path d="M6.2 15c-1.1 0-1.7-1.2-1-2l1-1.2c.5-.6.8-1.4.8-2.2V8c0-1.6.8-3 2-3.9" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
             <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" fill="none"/>
           </svg>
-          <span class="label" id="muteLabel">Sound on</span>
         </button>
       </div>
     </header>
@@ -143,11 +122,10 @@
     const decBtn  = document.getElementById('dec');
     const resetBtn= document.getElementById('reset');
 
-    // --- Mute toggle elements ---
+    // Mute toggle elements
     const muteBtn = document.getElementById('muteBtn');
     const iconBell = document.getElementById('iconBell');
     const iconBellOff = document.getElementById('iconBellOff');
-    const muteLabel = document.getElementById('muteLabel');
 
     let total = Number(localStorage.getItem('counter:total') || 0);
     let muted = localStorage.getItem('counter:muted') === '1';
@@ -156,7 +134,7 @@
     const saveMuted = ()=>localStorage.setItem('counter:muted', muted ? '1' : '0');
     const render=()=>{ valueEl.textContent = total; };
 
-    // ---- WebAudio wood/bamboo-ish click ----
+    // WebAudio click
     let audioCtx=null, master=null, comp=null, lastSoundTime=0;
     function ensureAudio(){
       if (!audioCtx) {
@@ -165,106 +143,44 @@
         comp.threshold.setValueAtTime(-24, audioCtx.currentTime);
         comp.knee.setValueAtTime(30, audioCtx.currentTime);
         comp.ratio.setValueAtTime(12, audioCtx.currentTime);
-        master = audioCtx.createGain();
-        master.gain.value = 0.6; // audible default
+        master = audioCtx.createGain(); master.gain.value = 0.6;
         comp.connect(master).connect(audioCtx.destination);
       }
       if (audioCtx.state === 'suspended') audioCtx.resume();
     }
-
     function woodClick(center){
       if (!audioCtx || muted) return;
-      const now = audioCtx.currentTime;
-      if (now - lastSoundTime < 0.08) return; // throttle a bit for long-press
-      lastSoundTime = now;
-
+      const now = audioCtx.currentTime; if (now - lastSoundTime < 0.08) return; lastSoundTime = now;
       const dur = 0.08;
       const buf = audioCtx.createBuffer(1, Math.floor(audioCtx.sampleRate*dur), audioCtx.sampleRate);
       const data = buf.getChannelData(0);
       for (let i=0;i<data.length;i++) data[i] = (Math.random()*2-1) * Math.exp(-i/(data.length*0.6));
       const src = audioCtx.createBufferSource(); src.buffer = buf;
-
       const bp1 = audioCtx.createBiquadFilter(); bp1.type='bandpass'; bp1.frequency.value=center; bp1.Q.value=14;
       const bp2 = audioCtx.createBiquadFilter(); bp2.type='bandpass'; bp2.frequency.value=center*0.62; bp2.Q.value=10;
-
-      const g = audioCtx.createGain();
-      g.gain.setValueAtTime(0.0001, now);
-      g.gain.exponentialRampToValueAtTime(0.08, now+0.005);
-      g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
-
-      const o = audioCtx.createOscillator();
-      o.type='sine';
-      o.frequency.setValueAtTime(center*1.1, now);
-      o.frequency.exponentialRampToValueAtTime(center*0.8, now+dur);
-      const og = audioCtx.createGain();
-      og.gain.setValueAtTime(0.0001, now);
-      og.gain.exponentialRampToValueAtTime(0.03, now+0.004);
-      og.gain.exponentialRampToValueAtTime(0.0001, now+dur);
-
-      src.connect(bp1); bp1.connect(bp2); bp2.connect(g).connect(comp);
-      o.connect(og).connect(comp);
-
-      src.start(now); src.stop(now+dur);
-      o.start(now); o.stop(now+dur);
+      const g = audioCtx.createGain(); g.gain.setValueAtTime(0.0001, now); g.gain.exponentialRampToValueAtTime(0.08, now+0.005); g.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+      const o = audioCtx.createOscillator(); o.type='sine'; o.frequency.setValueAtTime(center*1.1, now); o.frequency.exponentialRampToValueAtTime(center*0.8, now+dur);
+      const og = audioCtx.createGain(); og.gain.setValueAtTime(0.0001, now); og.gain.exponentialRampToValueAtTime(0.03, now+0.004); og.gain.exponentialRampToValueAtTime(0.0001, now+dur);
+      src.connect(bp1); bp1.connect(bp2); bp2.connect(g).connect(comp); o.connect(og).connect(comp);
+      src.start(now); src.stop(now+dur); o.start(now); o.stop(now+dur);
     }
-
-    function playClick(kind){
-      const f = kind==='inc' ? 1800 : kind==='dec' ? 1200 : 900;
-      woodClick(f);
-      if (!muted && navigator.vibrate) try{ navigator.vibrate(8); }catch{}
-    }
+    function playClick(kind){ const f = kind==='inc' ? 1800 : kind==='dec' ? 1200 : 900; woodClick(f); if (!muted && navigator.vibrate) try{ navigator.vibrate(8); }catch{} }
 
     function step(delta, kind){ total = Math.max(0, total + delta); render(); save(); playClick(kind); }
 
-    // --- Tap delay & hold acceleration ---
-    const TAP_GAP_MS = 300; // delay between single taps
-    const HOLD_START_MS = 600; // long-press start
-    const START_DELAY_MS = 360; // initial auto-repeat delay (faster start)
-    const MIN_DELAY_MS = 18;    // lower floor = faster max speed
-    const SPEEDUP = 0.82;       // accelerates quicker
+    // Tap delay & hold acceleration (faster max speed retained)
+    const TAP_GAP_MS = 300, HOLD_START_MS = 600, START_DELAY_MS = 360, MIN_DELAY_MS = 18, SPEEDUP = 0.82;
 
     function attachPress(btn, delta, kind){
-      let holdTimer=null, repeatTimer=null, long=false, lastTap=0;
-      let activePointerId=null;
-
+      let holdTimer=null, repeatTimer=null, long=false, lastTap=0, activePointerId=null;
       const onDown = (e)=>{
-        ensureAudio();
-        e.preventDefault?.();
-        activePointerId = e.pointerId ?? null;
-        if (activePointerId!=null && btn.setPointerCapture) btn.setPointerCapture(activePointerId);
-        btn.classList.add('is-pressing');
-        long=false;
-        clearTimeout(holdTimer); clearTimeout(repeatTimer);
-        holdTimer=setTimeout(()=>{
-          long=true;
-          let delay=START_DELAY_MS;
-          const tick=()=>{
-            step(delta, kind);
-            delay = Math.max(MIN_DELAY_MS, delay * SPEEDUP);
-            repeatTimer = setTimeout(tick, delay);
-          };
-          tick();
-        }, HOLD_START_MS);
+        ensureAudio(); e.preventDefault?.(); activePointerId = e.pointerId ?? null; if (activePointerId!=null && btn.setPointerCapture) btn.setPointerCapture(activePointerId);
+        btn.classList.add('is-pressing'); long=false; clearTimeout(holdTimer); clearTimeout(repeatTimer);
+        holdTimer=setTimeout(()=>{ long=true; let delay=START_DELAY_MS; const tick=()=>{ step(delta, kind); delay=Math.max(MIN_DELAY_MS, delay*SPEEDUP); repeatTimer=setTimeout(tick,delay); }; tick(); }, HOLD_START_MS);
       };
-
-      const cleanup=(e)=>{
-        btn.classList.remove('is-pressing');
-        if (activePointerId!=null && btn.hasPointerCapture?.(activePointerId)) btn.releasePointerCapture(activePointerId);
-        activePointerId=null;
-        clearTimeout(holdTimer); clearTimeout(repeatTimer);
-      };
-
-      const onUp=(e)=>{
-        const wasLong=long; cleanup(e);
-        if(!wasLong){
-          const now = Date.now();
-          if (now - lastTap >= TAP_GAP_MS){ step(delta, kind); lastTap = now; }
-        }
-      };
-
-      btn.addEventListener('pointerdown', onDown);
-      btn.addEventListener('pointerup', onUp);
-      btn.addEventListener('pointercancel', cleanup);
+      const cleanup=(e)=>{ btn.classList.remove('is-pressing'); if (activePointerId!=null && btn.hasPointerCapture?.(activePointerId)) btn.releasePointerCapture(activePointerId); activePointerId=null; clearTimeout(holdTimer); clearTimeout(repeatTimer); };
+      const onUp=(e)=>{ const wasLong=long; cleanup(e); if(!wasLong){ const now=Date.now(); if (now-lastTap>=TAP_GAP_MS){ step(delta, kind); lastTap=now; } } };
+      btn.addEventListener('pointerdown', onDown); btn.addEventListener('pointerup', onUp); btn.addEventListener('pointercancel', cleanup);
     }
 
     attachPress(incBtn, +1, 'inc');
@@ -272,20 +188,10 @@
 
     resetBtn.addEventListener('click', ()=>{ ensureAudio(); total=0; render(); save(); playClick('reset'); });
 
-    // --- Mute UI ---
-    function renderMute(){
-      muteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false');
-      iconBell.style.display = muted ? 'none' : 'block';
-      iconBellOff.style.display = muted ? 'block' : 'none';
-      muteLabel.textContent = muted ? 'Sound off' : 'Sound on';
-    }
+    // Mute UI
+    function renderMute(){ muteBtn.setAttribute('aria-pressed', muted ? 'true' : 'false'); iconBell.style.display = muted ? 'none' : 'block'; iconBellOff.style.display = muted ? 'block' : 'none'; }
     renderMute();
-
-    muteBtn.addEventListener('click', ()=>{
-      ensureAudio();
-      muted = !muted; saveMuted(); renderMute();
-      if (!muted) playClick('inc'); // give tiny confirm when turning back on
-    });
+    muteBtn.addEventListener('click', ()=>{ ensureAudio(); muted=!muted; saveMuted(); renderMute(); if (!muted) playClick('inc'); });
 
     render();
 
