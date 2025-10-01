@@ -150,6 +150,7 @@
 
     // WebAudio click
     let audioCtx=null, master=null, comp=null, lastSoundTime=0;
+    let audioReadyAt = 0; // timestamp when audio is guaranteed ready
     function warmupAudio(){
       if (!audioCtx) return;
       const now = audioCtx.currentTime;
@@ -170,7 +171,9 @@
         comp.connect(master).connect(audioCtx.destination);
       }
       if (audioCtx.state === 'suspended') audioCtx.resume();
-      warmupAudio(); // guarantee first sound
+      warmupAudio(); // prime pipeline
+      // allow a tiny grace window before first audible click so Safari fully spins up
+      audioReadyAt = performance.now() + 120; // ms
     }
     function woodClick(center){
       if (!audioCtx || muted) return;
@@ -188,7 +191,15 @@
       src.connect(bp1); bp1.connect(bp2); bp2.connect(g).connect(comp); o.connect(og).connect(comp);
       src.start(now); src.stop(now+dur); o.start(now); o.stop(now+dur);
     }
-    function playClick(kind){ const f = kind==='inc' ? 1800 : kind==='dec' ? 1200 : 900; woodClick(f); if (!muted && navigator.vibrate) try{ navigator.vibrate(8); }catch{} }
+    function playClick(kind){
+      const f = kind==='inc' ? 1800 : kind==='dec' ? 1200 : 900;
+      if (muted) { if (navigator.vibrate) try{ navigator.vibrate(8); }catch{}; return; }
+      ensureAudio();
+      const delayMs = Math.max(0, audioReadyAt - performance.now());
+      if (delayMs > 0) setTimeout(()=> woodClick(f), delayMs + 10);
+      else woodClick(f);
+      if (navigator.vibrate) try{ navigator.vibrate(8); }catch{}
+    }catch{} }
 
     function step(delta, kind){ total = Math.max(0, total + delta); render(); save(); playClick(kind); }
 
@@ -222,6 +233,8 @@
       if (overlayEl.classList.contains('hidden')) return;
       ensureAudio();
       overlayEl.classList.add('hidden');
+      // give the engine a moment; the next click should always be audible
+      audioReadyAt = performance.now() + 140;
       document.removeEventListener('pointerdown', firstTap, {capture:true});
     };
     document.addEventListener('pointerdown', firstTap, {capture:true, passive:true});
