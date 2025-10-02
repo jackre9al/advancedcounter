@@ -7,7 +7,7 @@
   <style>
     :root {
       --base: 180px; /* taller buttons */
-      --btn-width: calc(var(--base) * 1.2);
+      --btn-width: auto; /* width now responsive to grid */
     }
     html, body {
       margin: 0; height: 100%; background: #000; color: #fff;
@@ -34,8 +34,8 @@
     .bottom { width:100%; }
     #reset { width:180px; margin:0 auto 16px; padding:12px 24px; border-radius:20px; border:2px solid #333; background:#111; color:#fff; font-size:18px; letter-spacing:.2em; cursor:pointer; transition: background .12s ease, border-color .12s ease; }
     #reset:hover { border-color:#fff; background: rgba(255,255,255,.06); }
-    .controls { display:grid; grid-template-columns:1fr 1fr; gap:18px; justify-items:center; margin-bottom:8px; }
-    .btn { width: var(--btn-width); height: var(--base); background:#111; border-radius:20px; color:#fff; border:2px solid #333; display:grid; place-items:center; touch-action:manipulation; transition: transform .08s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease; position:relative; overflow:hidden; }
+    .controls { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap: var(--grid-gap, 18px); justify-items:stretch; align-items:stretch; width:100%; margin-bottom:8px; }
+    .btn { width:100%; height: var(--base); background:#111; border-radius:20px; color:#fff; border:2px solid #333; display:grid; place-items:center; touch-action:manipulation; transition: transform .08s ease, box-shadow .12s ease, background .12s ease, border-color .12s ease; position:relative; overflow:hidden; }
     .btn:hover { border-color:#fff; background: rgba(255,255,255,.06); }
     .btn.is-pressing { transform: scale(.94); background:#141414; box-shadow: inset 0 0 0 2px rgba(255,255,255,.08), inset 0 10px 30px rgba(255,255,255,.06); }
     .glyph { width:46%; height:46%; display:block; }
