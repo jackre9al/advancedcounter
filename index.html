@@ -4,18 +4,26 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
   <title>Counter</title>
+  <!-- Force dark UI for browser chrome where possible (iOS/Android) -->
+  <meta name="theme-color" content="#000000">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark">
+  <!-- iOS PWA / Safari status bar -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <style>
     :root {
       --base: 180px; /* taller buttons */
       --btn-width: auto; /* width now responsive to grid */
     }
-    html, body {
+    html, body { /* true black for OLED */
       margin: 0; height: 100%; background: #000; color: #fff;
       font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Inter, Arial, sans-serif;
       -webkit-font-smoothing: antialiased;
       overflow: hidden;
       user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
       -webkit-tap-highlight-color: transparent;
+      background-color: #000; overscroll-behavior: none;
     }
     .app { min-height:100%; padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom);
       display:flex; flex-direction:column; align-items:center; justify-content:space-between; box-sizing:border-box; text-align:center; }
